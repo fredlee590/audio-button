@@ -1,9 +1,14 @@
 #include <DFRobotDFPlayerMini.h>
+#define HW_INT_PIN 7
+#define LED_PIN 13
 
 DFRobotDFPlayerMini myDFPlayer;
 
-//int folder = 1;
-//int file = 1;
+bool play_when_ready;
+
+void queue_playback() {
+  play_when_ready = true;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -13,23 +18,31 @@ void setup() {
 
   if(!myDFPlayer.begin(Serial1, true, true)) {
     Serial.println("Unable to start DF Player Mini!");
-    while(true);
+    //while(true);
   } else {
     Serial.println("DF Player Mini started successfully.");
+
+    myDFPlayer.stop();
+    myDFPlayer.setTimeOut(500);
+    myDFPlayer.volume(10);
+    myDFPlayer.EQ(DFPLAYER_EQ_NORMAL);
+    myDFPlayer.outputDevice(DFPLAYER_DEVICE_SD);
   }
 
-  myDFPlayer.stop();
-  myDFPlayer.setTimeOut(500);
-  myDFPlayer.volume(1);
-  myDFPlayer.EQ(DFPLAYER_EQ_NORMAL);
-  myDFPlayer.outputDevice(DFPLAYER_DEVICE_SD);
+  play_when_ready = false;
+  pinMode(HW_INT_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  attachInterrupt(digitalPinToInterrupt(HW_INT_PIN), queue_playback, FALLING);
 }
 
 void loop() {
-  //Serial.println("Attempting to play mp3 (" + String(folder) + ", " + String(file) + ".mp3)");
-  Serial.println("Attempting to play next mp3");
-  //myDFPlayer.playFolder(folder, file);
-  //myDFPlayer.play(1);
-  myDFPlayer.next();
-  delay(5000);
+  Serial.println("loop");
+  if (play_when_ready) {
+    Serial.println("playing");
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    myDFPlayer.next();
+    play_when_ready = false;
+  }
+  delay(100);
 }
